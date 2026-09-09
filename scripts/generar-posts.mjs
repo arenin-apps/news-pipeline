@@ -147,8 +147,11 @@ Te paso el titulo y el texto de una noticia sobre Londres/UK. Tu trabajo es escr
 Reglas estrictas:
 - Nunca menciones el nombre del medio de donde sale la noticia (${listaProhibidos}).
 - Si la noticia original cita una fuente primaria (gov.uk, Met Office, TfL, NHS, la Policia, un ministerio, etc.), podes citarla vos tambien.
-- El cuerpo va en HTML compatible con el editor Gutenberg de WordPress: usa etiquetas <p>, <h2>, <ul>/<li> donde corresponda. No uses <html>, <head> ni <body>.
-- Extension: 250 a 450 palabras.
+- El contenido se arma en dos partes: un resumen directo (resumenIntro) y de 2 a 4 secciones con subtitulo.
+- resumenIntro: 2 a 3 frases que respondan de entrada lo mas importante de la noticia, sin rodeos.
+- Cada seccion tiene un subtitulo corto, 1 o 2 parrafos, y opcionalmente una lista de puntos si el contenido se presta (fechas, pasos, datos sueltos). Si no hace falta lista, dejala como array vacio.
+- No repitas en las secciones lo mismo que ya dice el resumenIntro.
+- Extension total: 250 a 450 palabras.
 - Elegi la categoria mas apropiada de esta lista (o sugeri una nueva si ninguna encaja bien):
 ${listaCategorias}
 - Sugeri de 2 a 4 tags cortos (1 a 3 palabras cada uno) en castellano, relevantes para el tema (ej. lugares, instituciones, temas puntuales).
@@ -158,10 +161,13 @@ Titulo original (de referencia, no lo copies literal): ${tituloOriginal}
 Texto de referencia:
 ${textoArticulo}
 
-Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despues, sin bloque de codigo markdown:
+Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despues, sin bloque de codigo markdown, sin etiquetas HTML dentro de los textos:
 {
   "titulo": "titulo nuevo en castellano, atractivo, sin comillas",
-  "cuerpoHtml": "cuerpo del post en HTML",
+  "resumenIntro": "2 a 3 frases con la respuesta directa, sin HTML",
+  "secciones": [
+    { "subtitulo": "...", "parrafos": ["parrafo 1", "parrafo 2 opcional"], "lista": ["punto 1", "punto 2"] }
+  ],
   "extractoSeo": "resumen de 130-155 caracteres para meta description",
   "focusKeyphrase": "frase clave de 2 a 4 palabras para SEO",
   "categoria": "nombre exacto de una categoria de la lista, o una nueva sugerida",
@@ -185,6 +191,50 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
   const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!texto) throw new Error('Gemini no devolvio contenido');
   return JSON.parse(texto);
+}
+
+/* --- Formato visual del cuerpo ("quick post") ------------------------ */
+
+function escaparHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function construirCuerpoHtml({ resumenIntro, secciones }) {
+  const seccionesHtml = (secciones || []).map(sec => {
+    const parrafosHtml = (sec.parrafos || []).map(p => `<p>${escaparHtml(p)}</p>`).join('\n');
+    const listaHtml = (sec.lista && sec.lista.length)
+      ? `<ul>\n${sec.lista.map(li => `<li>${escaparHtml(li)}</li>`).join('\n')}\n</ul>`
+      : '';
+    return `<h3>${escaparHtml(sec.subtitulo)}</h3>\n${parrafosHtml}\n${listaHtml}`;
+  }).join('\n');
+
+  return `<div class="arenin-quick-post">
+<style>
+.arenin-quick-post {
+    --primary: #38bdf8; --card-bg: #0f172a; --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8; --border-color: #1e293b; --radius: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-primary); line-height: 1.75; max-width: 720px; margin: 0 auto;
+}
+.arenin-quick-post h3 { font-size: 1.05rem; color: var(--primary); margin: 1.3rem 0 0.4rem; }
+.arenin-quick-post .qp-answer {
+    background: var(--card-bg); border: 1px solid var(--primary); border-left: 4px solid var(--primary);
+    border-radius: var(--radius); padding: 1.3rem 1.5rem; margin-bottom: 1.8rem;
+}
+.arenin-quick-post .qp-answer p { margin: 0; font-size: 1.05rem; }
+.arenin-quick-post p { color: var(--text-secondary); margin-bottom: 1.1rem; }
+.arenin-quick-post strong { color: var(--text-primary); }
+.arenin-quick-post ol, .arenin-quick-post ul { padding-left: 1.4rem; margin-bottom: 1.2rem; }
+.arenin-quick-post li { color: var(--text-secondary); margin-bottom: 0.6rem; }
+</style>
+<div class="qp-answer">
+<p>${escaparHtml(resumenIntro)}</p>
+</div>
+${seccionesHtml}
+</div>`;
 }
 
 /* --- Pexels ---------------------------------------------------------- */
@@ -340,7 +390,7 @@ async function procesarFuente(fuente, categorias, log) {
 
   const post = await crearBorrador({
     titulo: generado.titulo,
-    cuerpoHtml: generado.cuerpoHtml,
+    cuerpoHtml: construirCuerpoHtml(generado),
     extractoSeo: generado.extractoSeo,
     focusKeyphrase: generado.focusKeyphrase,
     categoriaId: categoria.id,
