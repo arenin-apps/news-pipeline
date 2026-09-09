@@ -28,7 +28,7 @@ const ADSENSE_BANNER = `<div style="text-align:center;">
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8667684098323123" crossorigin="anonymous"></script>
 <ins class="adsbygoogle" style="display:inline-block;width:320px;height:50px" data-ad-client="ca-pub-8667684098323123" data-ad-slot="6078156861"></ins>
 <script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
+(adsbygoogle = window.adsbygoogle || []).push({});
 </script>
 </div>`;
 
@@ -39,7 +39,7 @@ function adsenseInArticle() {
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8667684098323123" crossorigin="anonymous"></script>
 <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-8667684098323123" data-ad-slot="${ADSENSE_INARTICLE_SLOT}" data-ad-format="fluid" data-ad-layout="in-article"></ins>
 <script>
-     (adsbygoogle = window.adsbygoogle || []).push({});
+(adsbygoogle = window.adsbygoogle || []).push({});
 </script>
 </div>`;
 }
@@ -202,7 +202,7 @@ function escaparHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
-function construirCuerpoHtml({ resumenIntro, secciones }) {
+function construirCuerpoHtml({ resumenIntro, secciones, imagen }) {
   const seccionesHtml = (secciones || []).map(sec => {
     const parrafosHtml = (sec.parrafos || []).map(p => `<p>${escaparHtml(p)}</p>`).join('\n');
     const listaHtml = (sec.lista && sec.lista.length)
@@ -210,6 +210,11 @@ function construirCuerpoHtml({ resumenIntro, secciones }) {
       : '';
     return `<h3>${escaparHtml(sec.subtitulo)}</h3>\n${parrafosHtml}\n${listaHtml}`;
   }).join('\n');
+
+  const imagenHtml = imagen ? `<figure class="qp-imagen">
+<img src="${escaparHtml(imagen.url)}" alt="${escaparHtml(imagen.alt || '')}" loading="lazy" />
+${imagen.fotografo ? `<figcaption>Foto: ${escaparHtml(imagen.fotografo)} / Pexels</figcaption>` : ''}
+</figure>` : '';
 
   return `<div class="arenin-quick-post">
 <style>
@@ -229,7 +234,11 @@ function construirCuerpoHtml({ resumenIntro, secciones }) {
 .arenin-quick-post strong { color: var(--text-primary); }
 .arenin-quick-post ol, .arenin-quick-post ul { padding-left: 1.4rem; margin-bottom: 1.2rem; }
 .arenin-quick-post li { color: var(--text-secondary); margin-bottom: 0.6rem; }
+.arenin-quick-post .qp-imagen { margin: 0 0 1.5rem; }
+.arenin-quick-post .qp-imagen img { width: 100%; height: auto; border-radius: var(--radius); display: block; }
+.arenin-quick-post .qp-imagen figcaption { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; text-align: right; }
 </style>
+${imagenHtml}
 <div class="qp-answer">
 <p>${escaparHtml(resumenIntro)}</p>
 </div>
@@ -273,7 +282,7 @@ async function subirImagenAWordPress(urlImagen, nombreArchivo, altText) {
     body: JSON.stringify({ alt_text: altText })
   });
 
-  return media.id;
+  return { id: media.id, url: media.source_url };
 }
 
 /* --- WordPress -------------------------------------------------------- */
@@ -367,10 +376,13 @@ async function procesarFuente(fuente, categorias, log) {
   });
 
   let featuredMediaId = null;
+  let imagenCuerpo = null;
   try {
     const imagen = await buscarImagen(generado.imagenQuery || generado.titulo);
     if (imagen) {
-      featuredMediaId = await subirImagenAWordPress(imagen.url, `${fuente.id}-${Date.now()}.jpg`, generado.titulo);
+      const subida = await subirImagenAWordPress(imagen.url, `${fuente.id}-${Date.now()}.jpg`, generado.titulo);
+      featuredMediaId = subida.id;
+      imagenCuerpo = { url: subida.url, fotografo: imagen.fotografo, alt: generado.titulo };
     }
   } catch (err) {
     console.error(`  [${fuente.id}] no se pudo conseguir/subir imagen: ${err.message}`);
@@ -390,7 +402,7 @@ async function procesarFuente(fuente, categorias, log) {
 
   const post = await crearBorrador({
     titulo: generado.titulo,
-    cuerpoHtml: construirCuerpoHtml(generado),
+    cuerpoHtml: construirCuerpoHtml({ ...generado, imagen: imagenCuerpo }),
     extractoSeo: generado.extractoSeo,
     focusKeyphrase: generado.focusKeyphrase,
     categoriaId: categoria.id,
