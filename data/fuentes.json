@@ -1,0 +1,27 @@
+[
+    {
+          "id": "secretldn",
+          "rss": "https://secretldn.com/top-news/feed/",
+          "nombresProhibidos": ["Secret LDN", "SecretLDN"]
+    },
+    {
+          "id": "timeout-uk",
+          "rss": "https://www.timeout.com/uk/feed.rss",
+          "nombresProhibidos": ["Time Out", "TimeOut"]
+    },
+    {
+          "id": "timeout-london",
+          "rss": "https://www.timeout.com/london/feed.rss",
+          "nombresProhibidos": ["Time Out", "TimeOut"]
+    },
+    {
+          "id": "londonist",
+          "rss": "https://londonist.com/feed",
+          "nombresProhibidos": ["Londonist"]
+    },
+    {
+          "id": "mylondon",
+          "rss": "https://www.mylondon.news/news/?service=rss",
+          "nombresProhibidos": ["MyLondon", "My London"]
+    }
+]
