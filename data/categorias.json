@@ -1,0 +1,11 @@
+[
+    { "id": 696, "slug": "datos-utiles", "nombre": "Datos Utiles" },
+    { "id": 697, "slug": "eventos", "nombre": "Eventos" },
+    { "id": 153, "slug": "news", "nombre": "News" },
+    { "id": 792, "slug": "personajes-argentinos", "nombre": "Personajes Argentinos" },
+    { "id": 1657, "slug": "curiosidades", "nombre": "Curiosidades" },
+    { "id": 424, "slug": "health-care", "nombre": "Health & Care" },
+    { "id": 425, "slug": "tips-tricks", "nombre": "Tips & Tricks" },
+    { "id": 1014, "slug": "para-pensar", "nombre": "Para Pensar" },
+    { "id": 343, "slug": "coffee", "nombre": "Coffee" }
+]
