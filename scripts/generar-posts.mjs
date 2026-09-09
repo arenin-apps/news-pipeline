@@ -69,7 +69,7 @@ async function pedirJson(url, opciones = {}, intentos = 3) {
     for (let n = 1; n <= intentos; n++) {
           try {
                   const ctrl = new AbortController();
-                  const t = setTimeout(() => ctrl.abort(), 30000);
+                  const t = setTimeout(() => ctrl.abort(), 90000);
                   const res = await fetch(url, { ...opciones, signal: ctrl.signal });
                   clearTimeout(t);
                   if (!res.ok) {
