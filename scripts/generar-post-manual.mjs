@@ -76,9 +76,12 @@ async function pedirJson(url, opciones = {}, intentos = 3) {
       const res = await fetch(url, { ...opciones, signal: ctrl.signal });
       clearTimeout(t);
       if (!res.ok) {
-        let detalle = '';
-        try { detalle = JSON.stringify(await res.json()); } catch { /* cuerpo no era JSON */ }
-        throw new Error(`HTTP ${res.status}${detalle ? ' - ' + detalle : ''}`);
+        let cuerpo = null;
+        try { cuerpo = await res.json(); } catch { /* cuerpo no era JSON */ }
+        const error = new Error(`HTTP ${res.status}${cuerpo ? ' - ' + JSON.stringify(cuerpo) : ''}`);
+        error.status = res.status;
+        error.body = cuerpo;
+        throw error;
       }
       return await res.json();
     } catch (err) {
@@ -325,12 +328,21 @@ async function resolverTags(nombres) {
       ids.push(existente.id);
       continue;
     }
-    const creado = await pedirJson(`${WP_BASE}/tags`, {
-      method: 'POST',
-      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: limpio })
-    });
-    ids.push(creado.id);
+    try {
+      const creado = await pedirJson(`${WP_BASE}/tags`, {
+        method: 'POST',
+        headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: limpio })
+      });
+      ids.push(creado.id);
+    } catch (err) {
+      const idExistente = err.body && err.body.data && err.body.data.term_id;
+      if (idExistente) {
+        ids.push(idExistente);
+      } else {
+        throw err;
+      }
+    }
   }
   return ids;
 }
