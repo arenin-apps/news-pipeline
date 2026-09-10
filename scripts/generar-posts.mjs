@@ -317,7 +317,7 @@ async function resolverTags(nombres) {
   return ids;
 }
 
-async function crearBorrador({ titulo, cuerpoHtml, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId, imagenUrl }) {
+async function crearBorrador({ titulo, cuerpoHtml, resumenIntro, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId, imagenUrl }) {
   const auth = Buffer.from(`${WP_APP_USER}:${WP_APP_PASSWORD}`).toString('base64');
 
   const contenidoConAds = `${ADSENSE_BANNER}\n${cuerpoHtml}\n${adsenseInArticle()}`;
@@ -329,6 +329,7 @@ async function crearBorrador({ titulo, cuerpoHtml, extractoSeo, focusKeyphrase, 
     body: JSON.stringify({
       title: titulo,
       content: contenidoConAds,
+      excerpt: resumenIntro,
       status: 'draft',
       categories: [categoriaId],
       tags: tagIds || [],
@@ -412,6 +413,7 @@ async function procesarFuente(fuente, categorias, log) {
   const post = await crearBorrador({
     titulo: generado.titulo,
     cuerpoHtml: construirCuerpoHtml({ ...generado, imagen: imagenCuerpo }),
+    resumenIntro: generado.resumenIntro,
     extractoSeo: generado.extractoSeo,
     focusKeyphrase: generado.focusKeyphrase,
     categoriaId: categoria.id,
