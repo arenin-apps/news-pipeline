@@ -311,10 +311,11 @@ async function resolverTags(nombres) {
   return ids;
 }
 
-async function crearBorrador({ titulo, cuerpoHtml, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId }) {
+async function crearBorrador({ titulo, cuerpoHtml, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId, imagenUrl }) {
   const auth = Buffer.from(`${WP_APP_USER}:${WP_APP_PASSWORD}`).toString('base64');
 
   const contenidoConAds = `${ADSENSE_BANNER}\n${cuerpoHtml}\n${adsenseInArticle()}`;
+  const imagenIdStr = featuredMediaId ? String(featuredMediaId) : undefined;
 
   const res = await fetch(`${WP_BASE}/posts`, {
     method: 'POST',
@@ -329,7 +330,15 @@ async function crearBorrador({ titulo, cuerpoHtml, extractoSeo, focusKeyphrase, 
       meta: {
         _yoast_wpseo_title: `${titulo} | ARenIN`,
         _yoast_wpseo_metadesc: extractoSeo,
-        _yoast_wpseo_focuskw: focusKeyphrase
+        _yoast_wpseo_focuskw: focusKeyphrase,
+        '_yoast_wpseo_opengraph-title': titulo,
+        '_yoast_wpseo_opengraph-description': extractoSeo,
+        '_yoast_wpseo_opengraph-image': imagenUrl || undefined,
+        '_yoast_wpseo_opengraph-image-id': imagenIdStr,
+        '_yoast_wpseo_twitter-title': titulo,
+        '_yoast_wpseo_twitter-description': extractoSeo,
+        '_yoast_wpseo_twitter-image': imagenUrl || undefined,
+        '_yoast_wpseo_twitter-image-id': imagenIdStr
       }
     })
   });
@@ -407,7 +416,8 @@ async function main() {
     focusKeyphrase: generado.focusKeyphrase,
     categoriaId: categoria.id,
     tagIds,
-    featuredMediaId
+    featuredMediaId,
+    imagenUrl: imagenCuerpo ? imagenCuerpo.url : null
   });
 
   console.log(`Listo. Borrador creado: post #${post.id} "${generado.titulo}" (categoria: ${categoria.nombre}). Revisalo en WordPress antes de publicar.`);
