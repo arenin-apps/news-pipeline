@@ -114,6 +114,26 @@ function extraerTitulo(html) {
   return tag ? limpiarTexto(tag) : '';
 }
 
+const FRASES_BLOQUEO_ANTIBOT = [
+  'one moment, please',
+  'just a moment',
+  'attention required',
+  'are you a human',
+  'verifying you are human',
+  'please verify you are a human',
+  'checking your browser',
+  'access denied',
+  'request unsuccessful',
+  'enable javascript and cookies to continue',
+  'un momento, por favor',
+  'comprobando tu navegador'
+];
+
+function pareceBloqueoAntiBot(titulo) {
+  const t = titulo.trim().toLowerCase();
+  return FRASES_BLOQUEO_ANTIBOT.some(frase => t === frase || t.startsWith(frase));
+}
+
 function extraerTextoVisible(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -381,6 +401,11 @@ async function main() {
   const tituloOriginal = extraerTitulo(html) || POST_URL;
   const textoArticulo = extraerTextoVisible(html);
   console.log(`Titulo original detectado: "${tituloOriginal}"`);
+
+  if (pareceBloqueoAntiBot(tituloOriginal)) {
+    console.error(`La pagina de origen parece estar bloqueando el acceso automatico (se detecto una pagina de verificacion en vez del articulo: "${tituloOriginal}"). Probá abrir la URL en el navegador para confirmar que carga bien, o pegar el texto de la nota manualmente.`);
+    process.exit(1);
+  }
 
   const generado = await generarContenido({ tituloOriginal, textoArticulo, dominioOrigen, categorias });
 
