@@ -202,7 +202,7 @@ function escaparHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
-function construirCuerpoHtml({ resumenIntro, secciones, imagen }) {
+function construirCuerpoHtml({ resumenIntro, secciones }) {
   const seccionesHtml = (secciones || []).map(sec => {
     const parrafosHtml = (sec.parrafos || []).map(p => `<p>${escaparHtml(p)}</p>`).join('\n');
     const listaHtml = (sec.lista && sec.lista.length)
@@ -210,11 +210,6 @@ function construirCuerpoHtml({ resumenIntro, secciones, imagen }) {
       : '';
     return `<h3>${escaparHtml(sec.subtitulo)}</h3>\n${parrafosHtml}\n${listaHtml}`;
   }).join('\n');
-
-  const imagenHtml = imagen ? `<figure class="qp-imagen">
-<img src="${escaparHtml(imagen.url)}" alt="${escaparHtml(imagen.alt || '')}" loading="lazy" />
-${imagen.fotografo ? `<figcaption>Foto: ${escaparHtml(imagen.fotografo)} / Pexels</figcaption>` : ''}
-</figure>` : '';
 
   return `<div class="arenin-quick-post">
 <style>
@@ -234,16 +229,21 @@ ${imagen.fotografo ? `<figcaption>Foto: ${escaparHtml(imagen.fotografo)} / Pexel
 .arenin-quick-post strong { color: var(--text-primary); }
 .arenin-quick-post ol, .arenin-quick-post ul { padding-left: 1.4rem; margin-bottom: 1.2rem; }
 .arenin-quick-post li { color: var(--text-secondary); margin-bottom: 0.6rem; }
-.arenin-quick-post .qp-imagen { margin: 0 0 1.5rem; }
-.arenin-quick-post .qp-imagen img { width: 100%; height: auto; border-radius: var(--radius); display: block; }
-.arenin-quick-post .qp-imagen figcaption { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.4rem; text-align: right; }
 </style>
-${imagenHtml}
 <div class="qp-answer">
 <p>${escaparHtml(resumenIntro)}</p>
 </div>
 ${seccionesHtml}
 </div>`;
+}
+
+function construirBloqueImagen({ id, url, alt, fotografo }) {
+  const figcaption = fotografo
+    ? `<figcaption class="wp-element-caption">Foto: ${escaparHtml(fotografo)} / Pexels</figcaption>`
+    : '';
+  return `<!-- wp:image {"id":${id},"sizeSlug":"large","linkDestination":"none"} -->
+<figure class="wp-block-image size-large"><img src="${escaparHtml(url)}" alt="${escaparHtml(alt || '')}" class="wp-image-${id}"/>${figcaption}</figure>
+<!-- /wp:image -->`;
 }
 
 /* --- Pexels ---------------------------------------------------------- */
@@ -317,10 +317,9 @@ async function resolverTags(nombres) {
   return ids;
 }
 
-async function crearBorrador({ titulo, cuerpoHtml, resumenIntro, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId, imagenUrl }) {
+async function crearBorrador({ titulo, content, resumenIntro, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId, imagenUrl }) {
   const auth = Buffer.from(`${WP_APP_USER}:${WP_APP_PASSWORD}`).toString('base64');
 
-  const contenidoConAds = `${ADSENSE_BANNER}\n${cuerpoHtml}\n${adsenseInArticle()}`;
   const imagenIdStr = featuredMediaId ? String(featuredMediaId) : undefined;
 
   const res = await fetch(`${WP_BASE}/posts`, {
@@ -328,7 +327,7 @@ async function crearBorrador({ titulo, cuerpoHtml, resumenIntro, extractoSeo, fo
     headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       title: titulo,
-      content: contenidoConAds,
+      content,
       excerpt: resumenIntro,
       status: 'draft',
       categories: [categoriaId],
@@ -410,9 +409,18 @@ async function procesarFuente(fuente, categorias, log) {
     console.error(`  [${fuente.id}] no se pudieron resolver los tags: ${err.message}`);
   }
 
+  const bloqueImagen = imagenCuerpo
+    ? construirBloqueImagen({ id: featuredMediaId, url: imagenCuerpo.url, alt: generado.titulo, fotografo: imagenCuerpo.fotografo })
+    : '';
+  const content = [
+    `<!-- wp:html -->\n${ADSENSE_BANNER}\n<!-- /wp:html -->`,
+    bloqueImagen,
+    `<!-- wp:html -->\n${construirCuerpoHtml(generado)}\n${adsenseInArticle()}\n<!-- /wp:html -->`
+  ].filter(Boolean).join('\n\n');
+
   const post = await crearBorrador({
     titulo: generado.titulo,
-    cuerpoHtml: construirCuerpoHtml({ ...generado, imagen: imagenCuerpo }),
+    content,
     resumenIntro: generado.resumenIntro,
     extractoSeo: generado.extractoSeo,
     focusKeyphrase: generado.focusKeyphrase,
