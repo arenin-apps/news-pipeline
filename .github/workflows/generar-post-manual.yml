@@ -21,6 +21,9 @@ jobs:
         with:
           node-version: 20
 
+      - name: Instalar dependencias
+        run: npm install
+
       - name: Generar post desde URL
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -28,5 +31,6 @@ jobs:
           WP_APP_USER: ${{ secrets.WP_APP_USER }}
           WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
           ADSENSE_INARTICLE_SLOT: ${{ secrets.ADSENSE_INARTICLE_SLOT }}
+          GOOGLE_SERVICE_ACCOUNT_KEY: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
           POST_URL: ${{ github.event.inputs.url }}
         run: node scripts/generar-post-manual.mjs
