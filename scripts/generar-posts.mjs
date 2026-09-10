@@ -8,6 +8,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { createSign } from 'node:crypto';
+import sharp from 'sharp';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FUENTES = join(RAIZ, 'data', 'fuentes.json');
@@ -22,6 +24,8 @@ const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const WP_APP_USER = process.env.WP_APP_USER;
 const WP_APP_PASSWORD = process.env.WP_APP_PASSWORD;
 const ADSENSE_INARTICLE_SLOT = process.env.ADSENSE_INARTICLE_SLOT || '';
+const GOOGLE_SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+const DRIVE_FOLDER_ID = '1jeYD2UzKSLIssXi4_6gMgZT1MTjoozmg';
 
 const ADSENSE_BANNER = `<div style="text-align:center;">
 <p style="color:#94a3b8; font-size:11px; letter-spacing:1px; text-transform:uppercase; margin:0 0 6px 0;">Publicidad</p>
@@ -356,6 +360,146 @@ async function crearBorrador({ titulo, content, resumenIntro, extractoSeo, focus
   return res.json();
 }
 
+/* --- Imagen para redes sociales (1080x1350) + Google Drive ------------- */
+
+function envolverTexto(texto, maxCaracteresPorLinea) {
+  const palabras = texto.split(' ');
+  const lineas = [];
+  let actual = '';
+  for (const palabra of palabras) {
+    const prueba = actual ? `${actual} ${palabra}` : palabra;
+    if (prueba.length > maxCaracteresPorLinea && actual) {
+      lineas.push(actual);
+      actual = palabra;
+    } else {
+      actual = prueba;
+    }
+  }
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
+async function generarImagenSocial({ imagenUrl, titulo }) {
+  const resImg = await fetch(imagenUrl, { headers: { 'User-Agent': UA } });
+  if (!resImg.ok) throw new Error(`No se pudo descargar la imagen para redes (HTTP ${resImg.status})`);
+  const bufferOriginal = Buffer.from(await resImg.arrayBuffer());
+
+  const ANCHO = 1080;
+  const ALTO = 1350;
+
+  const fondo = await sharp(bufferOriginal)
+    .resize(ANCHO, ALTO, { fit: 'cover', position: 'centre' })
+    .toBuffer();
+
+  const lineas = envolverTexto(titulo, 24).slice(0, 4);
+  const lineaAltura = 68;
+  const textoAlturaTotal = lineas.length * lineaAltura;
+  const textoInicioY = ALTO - 110 - textoAlturaTotal;
+
+  const tspans = lineas
+    .map((linea, i) => `<tspan x="64" y="${textoInicioY + i * lineaAltura}">${escaparHtml(linea)}</tspan>`)
+    .join('');
+
+  const svg = `<svg width="${ANCHO}" height="${ALTO}" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="degradado" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#0f172a" stop-opacity="0" />
+<stop offset="100%" stop-color="#0f172a" stop-opacity="0.92" />
+</linearGradient>
+</defs>
+<rect x="0" y="${Math.round(ALTO * 0.42)}" width="${ANCHO}" height="${Math.round(ALTO * 0.58)}" fill="url(#degradado)" />
+<rect x="64" y="${textoInicioY - 54}" width="84" height="6" fill="#38bdf8" />
+<text font-family="Arial, sans-serif" font-weight="bold" font-size="54" fill="#ffffff">${tspans}</text>
+</svg>`;
+
+  return sharp(fondo)
+    .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
+    .jpeg({ quality: 90 })
+    .toBuffer();
+}
+
+function base64url(input) {
+  return Buffer.from(input)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+async function obtenerAccessTokenDrive() {
+  const keyJson = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
+  const ahora = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT' };
+  const claims = {
+    iss: keyJson.client_email,
+    scope: 'https://www.googleapis.com/auth/drive',
+    aud: 'https://oauth2.googleapis.com/token',
+    exp: ahora + 3600,
+    iat: ahora
+  };
+  const entrada = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claims))}`;
+  const firmante = createSign('RSA-SHA256');
+  firmante.update(entrada);
+  firmante.end();
+  const firma = firmante
+    .sign(keyJson.private_key)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  const jwt = `${entrada}.${firma}`;
+
+  const data = await pedirJson('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt
+    })
+  });
+  return data.access_token;
+}
+
+async function subirImagenADrive({ buffer, nombreArchivo, accessToken }) {
+  const boundary = `arenin_${Date.now()}`;
+  const metadata = JSON.stringify({ name: nombreArchivo, parents: [DRIVE_FOLDER_ID] });
+  const preambulo = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: image/jpeg\r\n\r\n`;
+  const cierre = `\r\n--${boundary}--`;
+  const body = Buffer.concat([Buffer.from(preambulo), buffer, Buffer.from(cierre)]);
+
+  const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': `multipart/related; boundary=${boundary}`
+    },
+    body
+  });
+  if (!res.ok) {
+    let detalle = '';
+    try { detalle = JSON.stringify(await res.json()); } catch { /* nada */ }
+    throw new Error(`No se pudo subir la imagen a Drive (HTTP ${res.status})${detalle ? ' - ' + detalle : ''}`);
+  }
+  return res.json();
+}
+
+function slugify(s) {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 60);
+}
+
+async function generarYSubirImagenSocial({ imagenUrl, titulo }) {
+  if (!GOOGLE_SERVICE_ACCOUNT_KEY) return;
+  const buffer = await generarImagenSocial({ imagenUrl, titulo });
+  const accessToken = await obtenerAccessTokenDrive();
+  await subirImagenADrive({ buffer, nombreArchivo: `${slugify(titulo)}.jpg`, accessToken });
+}
+
 /* --- Montaje final ------------------------------------------------------ */
 
 async function procesarFuente(fuente, categorias, log) {
@@ -395,6 +539,15 @@ async function procesarFuente(fuente, categorias, log) {
     }
   } catch (err) {
     console.error(`  [${fuente.id}] no se pudo conseguir/subir imagen: ${err.message}`);
+  }
+
+  if (imagenCuerpo) {
+    try {
+      await generarYSubirImagenSocial({ imagenUrl: imagenCuerpo.url, titulo: generado.titulo });
+      console.log(`  [${fuente.id}] imagen para redes sociales subida a Drive`);
+    } catch (err) {
+      console.error(`  [${fuente.id}] no se pudo generar/subir la imagen para redes: ${err.message}`);
+    }
   }
 
   if (generado.categoriaEsNueva) {
