@@ -384,7 +384,19 @@ async function crearBorrador({ titulo, content, resumenIntro, extractoSeo, focus
     try { detalle = JSON.stringify(await res.json()); } catch { /* nada */ }
     throw new Error(`No se pudo crear el borrador (HTTP ${res.status})${detalle ? ' - ' + detalle : ''}`);
   }
-  return res.json();
+  const post = await res.json();
+
+  if (resumenIntro && (!post.excerpt || !post.excerpt.raw)) {
+    const resPatch = await fetch(`${WP_BASE}/posts/${post.id}`, {
+      method: 'POST',
+      headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ excerpt: resumenIntro })
+    });
+    if (resPatch.ok) return resPatch.json();
+    console.error(`No se pudo corregir el excerpt vacio del post ${post.id}`);
+  }
+
+  return post;
 }
 
 /* --- Imagen para redes sociales (1080x1350) + Google Drive ------------- */
