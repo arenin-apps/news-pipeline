@@ -479,7 +479,9 @@ function slugify(s) {
 }
 
 async function generarYSubirImagenSocial({ imagenUrl, titulo }) {
-  if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET || !GOOGLE_OAUTH_REFRESH_TOKEN) return;
+  if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET || !GOOGLE_OAUTH_REFRESH_TOKEN) {
+    throw new Error('Faltan credenciales OAuth de Google Drive (revisar GOOGLE_OAUTH_CLIENT_ID/SECRET/REFRESH_TOKEN en los secrets)');
+  }
   const buffer = await generarImagenSocial({ imagenUrl, titulo });
   const accessToken = await obtenerAccessTokenDrive();
   await subirImagenADrive({ buffer, nombreArchivo: `${slugify(titulo)}.jpg`, accessToken });
