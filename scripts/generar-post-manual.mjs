@@ -8,7 +8,6 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { createSign } from 'node:crypto';
 import sharp from 'sharp';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -22,7 +21,9 @@ const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const WP_APP_USER = process.env.WP_APP_USER;
 const WP_APP_PASSWORD = process.env.WP_APP_PASSWORD;
 const ADSENSE_INARTICLE_SLOT = process.env.ADSENSE_INARTICLE_SLOT || '';
-const GOOGLE_SERVICE_ACCOUNT_KEY = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
+const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+const GOOGLE_OAUTH_REFRESH_TOKEN = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
 const DRIVE_FOLDER_ID = '1jeYD2UzKSLIssXi4_6gMgZT1MTjoozmg';
 const POST_URL = process.env.POST_URL;
 
@@ -444,43 +445,15 @@ async function generarImagenSocial({ imagenUrl, titulo }) {
     .toBuffer();
 }
 
-function base64url(input) {
-  return Buffer.from(input)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-}
-
 async function obtenerAccessTokenDrive() {
-  const keyJson = JSON.parse(GOOGLE_SERVICE_ACCOUNT_KEY);
-  const ahora = Math.floor(Date.now() / 1000);
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const claims = {
-    iss: keyJson.client_email,
-    scope: 'https://www.googleapis.com/auth/drive',
-    aud: 'https://oauth2.googleapis.com/token',
-    exp: ahora + 3600,
-    iat: ahora
-  };
-  const entrada = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claims))}`;
-  const firmante = createSign('RSA-SHA256');
-  firmante.update(entrada);
-  firmante.end();
-  const firma = firmante
-    .sign(keyJson.private_key)
-    .toString('base64')
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
-  const jwt = `${entrada}.${firma}`;
-
   const data = await pedirJson('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt
+      client_id: GOOGLE_OAUTH_CLIENT_ID,
+      client_secret: GOOGLE_OAUTH_CLIENT_SECRET,
+      refresh_token: GOOGLE_OAUTH_REFRESH_TOKEN,
+      grant_type: 'refresh_token'
     })
   });
   return data.access_token;
@@ -520,7 +493,7 @@ function slugify(s) {
 }
 
 async function generarYSubirImagenSocial({ imagenUrl, titulo }) {
-  if (!GOOGLE_SERVICE_ACCOUNT_KEY) return;
+  if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET || !GOOGLE_OAUTH_REFRESH_TOKEN) return;
   const buffer = await generarImagenSocial({ imagenUrl, titulo });
   const accessToken = await obtenerAccessTokenDrive();
   await subirImagenADrive({ buffer, nombreArchivo: `${slugify(titulo)}.jpg`, accessToken });
