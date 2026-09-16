@@ -85,7 +85,12 @@ async function pedirJson(url, opciones = {}, intentos = 3) {
         error.body = cuerpo;
         throw error;
       }
-      return await res.json();
+      const texto = await res.text();
+      try {
+        return JSON.parse(texto);
+      } catch {
+        throw new Error(`Respuesta no es JSON (HTTP ${res.status}, redirected=${res.redirected}, url final=${res.url}): ${texto.slice(0, 300)}`);
+      }
     } catch (err) {
       ultimoError = err;
       if (n < intentos) await new Promise(r => setTimeout(r, 3000 * n));
