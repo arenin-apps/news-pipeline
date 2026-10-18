@@ -233,41 +233,42 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
 }`;
 
   const promptGuia = [
-    'Sos un redactor de ARenIN, un sitio para la comunidad argentina en el Reino Unido. Tu trabajo es escribir una GUIA DE TRAMITE practica, en castellano claro, para argentinos que viven en el Reino Unido, basada UNICAMENTE en el texto oficial de referencia.',
+    'Sos un redactor de ARenIN, un sitio para la comunidad argentina en el Reino Unido. Tu trabajo es escribir una GUÍA DE TRÁMITE práctica, en castellano claro, para argentinos que viven en el Reino Unido, basada ÚNICAMENTE en el texto oficial de referencia.',
     '',
     'Reglas estrictas:',
-    '- Usa solo informacion que aparezca en el texto de referencia. NO inventes pasos, costos, plazos, requisitos, direcciones ni enlaces. Si el texto no trae un dato importante (por ejemplo el costo o el plazo), no lo menciones o aclara que hay que confirmarlo en la fuente oficial.',
-    '- La guia se publica con un enlace a la fuente oficial al pie. Podes nombrar a la institucion oficial (NHS, GOV.UK, HMRC, un consulado, etc.).',
-    '- Es informacion general, no asesoramiento legal personalizado. No hables de ARenIN en tercera persona.',
+    '- Escribí con ortografía correcta: tildes, ñ y signos de apertura (¿ ¡) donde corresponda, también en el título y en los subtítulos.',
+    '- Usá solo información que aparezca en el texto de referencia. NO inventes pasos, costos, plazos, requisitos, direcciones ni enlaces. Si el texto no trae un dato importante (por ejemplo el costo o el plazo), no lo menciones o aclará que hay que confirmarlo en la fuente oficial.',
+    '- La guía se publica con un enlace a la fuente oficial al pie. Podés nombrar a la institución oficial (NHS, GOV.UK, HMRC, un consulado, etc.).',
+    '- Es información general, no asesoramiento legal personalizado. No hables de ARenIN en tercera persona.',
     '- Estructura de "secciones", en este orden, omitiendo las que el texto no permita completar:',
-    '  1. "Para quien es": quien puede o debe hacer este tramite.',
-    '  2. "Paso a paso": lista de pasos cortos y concretos, en orden (poner "ordenada": true en esa seccion).',
-    '  3. "Documentos y datos que necesitas": lista.',
+    '  1. "Para quién es": quién puede o debe hacer este trámite.',
+    '  2. "Paso a paso": lista de pasos cortos y concretos, en orden (poner "ordenada": true en esa sección).',
+    '  3. "Documentos y datos que necesitás": lista.',
     '  4. "Costos y plazos".',
-    '  5. "Tene en cuenta": avisos o errores frecuentes, solo si el texto los respalda.',
-    '- resumenIntro: 2 a 3 frases que expliquen que es el tramite y para que sirve.',
-    '- Extension total: 300 a 600 palabras.',
-    '- Sugeri de 2 a 4 tags cortos (1 a 3 palabras cada uno) en castellano.',
+    '  5. "Tené en cuenta": avisos o errores frecuentes, solo si el texto los respalda.',
+    '- resumenIntro: 2 a 3 frases que expliquen qué es el trámite y para qué sirve.',
+    '- Extensión total: 300 a 600 palabras. Sé conciso.',
+    '- Sugerí de 2 a 4 tags cortos (1 a 3 palabras cada uno) en castellano.',
     '',
-    'Titulo original (de referencia): ' + tituloOriginal,
+    'Título original (de referencia): ' + tituloOriginal,
     '',
     'Texto oficial de referencia:',
     textoArticulo,
     '',
-    'Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despues, sin bloque de codigo markdown, sin etiquetas HTML dentro de los textos:',
+    'Respondé ÚNICAMENTE con un JSON con esta forma exacta, sin texto antes ni después, sin bloque de código markdown, sin etiquetas HTML dentro de los textos:',
     '{',
-    '  "titulo": "titulo claro tipo Como hacer X en el Reino Unido: guia paso a paso, sin comillas",',
+    '  "titulo": "título claro tipo Cómo hacer X en el Reino Unido: guía paso a paso, sin comillas",',
     '  "resumenIntro": "2 a 3 frases, sin HTML",',
     '  "secciones": [',
-    '    { "subtitulo": "...", "parrafos": ["parrafo opcional"], "lista": ["punto 1", "punto 2"], "ordenada": false }',
+    '    { "subtitulo": "...", "parrafos": ["párrafo opcional"], "lista": ["punto 1", "punto 2"], "ordenada": false }',
     '  ],',
-    '  "fuenteOficialNombre": "nombre de la institucion oficial, por ejemplo NHS o GOV.UK",',
+    '  "fuenteOficialNombre": "nombre de la institución oficial, por ejemplo NHS o GOV.UK",',
     '  "extractoSeo": "resumen de 130-155 caracteres para meta description",',
     '  "focusKeyphrase": "frase clave de 2 a 4 palabras para SEO",',
-    '  "categoria": "Tramites",',
+    '  "categoria": "Trámites",',
     '  "categoriaEsNueva": false,',
     '  "tags": ["tag uno", "tag dos"],',
-    '  "imagenQuery": "2 a 4 palabras en ingles para buscar una foto relacionada en un banco de imagenes"',
+    '  "imagenQuery": "2 a 4 palabras en inglés para buscar una foto relacionada en un banco de imágenes"',
     '}'
   ].join('\n');
 
@@ -338,8 +339,8 @@ function construirPieGuia({ url, nombre }) {
   const fecha = new Date().toLocaleDateString('es-AR', { timeZone: 'Europe/London', day: '2-digit', month: '2-digit', year: 'numeric' });
   return '<div style="border-top: 1px solid var(--border-color); margin-top: 1.8rem; padding-top: 1rem; font-size: 0.9rem;">' +
     '<p><strong>Fuente oficial:</strong> <a href="' + escaparHtml(url) + '" target="_blank" rel="noopener">' + escaparHtml(nombre) + '</a></p>' +
-    '<p>Informacion orientativa. Los requisitos, costos y plazos pueden cambiar: confirma siempre en la fuente oficial antes de iniciar el tramite.</p>' +
-    '<p><strong>Ultima revision:</strong> ' + fecha + '</p></div>';
+    '<p>Información orientativa. Los requisitos, costos y plazos pueden cambiar: confirmá siempre en la fuente oficial antes de iniciar el trámite.</p>' +
+    '<p><strong>Última revisión:</strong> ' + fecha + '</p></div>';
 }
 
 function construirBloqueImagen({ id, url, alt, fotografo }) {
