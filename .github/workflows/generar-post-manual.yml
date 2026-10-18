@@ -7,6 +7,14 @@ on:
         description: 'URL del articulo a convertir en post'
         required: true
         type: string
+      tipo:
+        description: 'Tipo de contenido'
+        required: true
+        default: 'noticia'
+        type: choice
+        options:
+          - noticia
+          - guia
 
 permissions:
   contents: read
@@ -35,4 +43,5 @@ jobs:
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
           POST_URL: ${{ github.event.inputs.url }}
+          POST_TIPO: ${{ github.event.inputs.tipo }}
         run: node scripts/generar-post-manual.mjs
