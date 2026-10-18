@@ -62,13 +62,13 @@ async function pedirTexto(url, intentos = 3) {
       return await res.text();
     } catch (err) {
       ultimoError = err;
-      if (n < intentos) await new Promise(r => setTimeout(r, 3000 * n));
+      if (n < intentos) await new Promise(r => setTimeout(r, ([429, 500, 503].includes(err.status) ? 20000 : 3000) * n));
     }
   }
   throw ultimoError;
 }
 
-async function pedirJson(url, opciones = {}, intentos = 3) {
+async function pedirJson(url, opciones = {}, intentos = 4) {
   let ultimoError;
   for (let n = 1; n <= intentos; n++) {
     try {
@@ -87,7 +87,7 @@ async function pedirJson(url, opciones = {}, intentos = 3) {
       return await res.json();
     } catch (err) {
       ultimoError = err;
-      if (n < intentos) await new Promise(r => setTimeout(r, 3000 * n));
+      if (n < intentos) await new Promise(r => setTimeout(r, ([429, 500, 503].includes(err.status) ? 20000 : 3000) * n));
     }
   }
   throw ultimoError;
