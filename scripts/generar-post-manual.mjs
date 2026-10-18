@@ -73,7 +73,7 @@ async function pedirJson(url, opciones = {}, intentos = 3) {
   for (let n = 1; n <= intentos; n++) {
     try {
       const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 90000);
+      const t = setTimeout(() => ctrl.abort(), 180000);
       const res = await fetch(url, { ...opciones, signal: ctrl.signal });
       clearTimeout(t);
       if (!res.ok) {
@@ -143,18 +143,50 @@ function pareceBloqueoAntiBot(titulo) {
 }
 
 function extraerTextoVisible(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+  const ENT = { lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', ndash: '–', mdash: '—', hellip: '…', eacute: 'é', egrave: 'è', aacute: 'á', agrave: 'à', iacute: 'í', oacute: 'ó', uacute: 'ú', ntilde: 'ñ', ccedil: 'ç', uuml: 'ü', ouml: 'ö', auml: 'ä', pound: '£', euro: '€', copy: '©', times: '×', middot: '·' }
+  // Muchas listas ("los mejores X") traen la lista completa como datos estructurados (JSON-LD ItemList).
+  const elementosLista = []
+  const visitar = (n) => {
+    if (!n || typeof n !== 'object') return
+    if (Array.isArray(n)) return n.forEach(visitar)
+    if (n['@type'] === 'ItemList' && Array.isArray(n.itemListElement)) {
+      n.itemListElement.forEach((e) => {
+        const it = (e && e.item) || e
+        const nombre = (it && it.name) || (e && e.name)
+        if (nombre) elementosLista.push(String(nombre).trim())
+      })
+    }
+    Object.values(n).forEach(visitar)
+  }
+  for (const m of html.matchAll(/<script[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { visitar(JSON.parse(m[1])) } catch (e) { /* JSON-LD invalido: se ignora */ }
+  }
+
+  // Se conserva la estructura (titulos, listas, parrafos) para que el modelo distinga cada elemento.
+  const texto = html
+    .replace(/<(script|style|noscript|svg|nav|header|footer|aside|form|iframe)[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<h[1-4][^>]*>/gi, '\n\n## ')
+    .replace(/<\/h[1-4]>/gi, '\n')
+    .replace(/<li[^>]*>/gi, '\n- ')
+    .replace(/<\/(p|div|section|article|tr|ul|ol)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&#0?39;/g, "'")
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
-    .replace(/\s+/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&#x([0-9a-f]+);/gi, (m, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (m, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&([a-z]+);/gi, (m, n) => (ENT[n] !== undefined ? ENT[n] : m))
+    .replace(/^- *$/gm, '')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
-    .slice(0, 6000);
+  const indice = elementosLista.length ? 'ELEMENTOS DE LA LISTA (' + elementosLista.length + '): ' + elementosLista.join(' | ') + '\n\n' : ''
+  return (indice + texto).slice(0, 60000)
 }
 
 /* --- Gemini --------------------------------------------------------- */
@@ -169,7 +201,8 @@ Sergio (el editor del sitio) encontro una noticia interesante para la comunidad 
 Reglas estrictas:
 - Nunca menciones el nombre del sitio o medio de donde sale esta noticia (dominio: ${dominioOrigen}).
 - Si la noticia original cita una fuente primaria (gov.uk, Met Office, TfL, NHS, la Policia, un ministerio, etc.), podes citarla vos tambien.
-- El contenido se arma en dos partes: un resumen directo (resumenIntro) y de 2 a 4 secciones con subtitulo.
+- El contenido se arma en dos partes: un resumen directo (resumenIntro) y las secciones con subtitulo. Para una noticia comun usa de 2 a 4 secciones.
+- IMPORTANTE: si el texto es una LISTA o ranking de varios elementos (galerias, museos, restaurantes, planes, etc.), NO te quedes con uno solo ni con los primeros: cubri TODOS los elementos de la lista (hasta 25), una seccion por elemento. El subtitulo es el nombre del lugar o elemento; el parrafo explica en 2 o 3 frases que es, que lo hace especial y en que zona o barrio esta, y si el texto lo dice, agrega datos practicos (entrada gratuita, horarios, exposicion actual) en la lista. El resumenIntro debe decir cuantos lugares se cubren y que tienen en comun. Si el texto trae una linea ELEMENTOS DE LA LISTA, usala como indice para no omitir ninguno.
 - resumenIntro: 2 a 3 frases que respondan de entrada lo mas importante de la noticia, sin rodeos.
 - Cada seccion tiene un subtitulo corto, 1 o 2 parrafos, y opcionalmente una lista de puntos si el contenido se presta (fechas, pasos, datos sueltos). Si no hace falta lista, dejala como array vacio.
 - No repitas en las secciones lo mismo que ya dice el resumenIntro.
@@ -205,7 +238,7 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, responseMimeType: 'application/json' }
+        generationConfig: { temperature: 0.7, responseMimeType: 'application/json', maxOutputTokens: 16384 }
       })
     }
   );
