@@ -624,7 +624,17 @@ async function main() {
   const dominioOrigen = urlValida.hostname.replace(/^www\./, '');
 
   console.log(`Leyendo ${POST_URL}...`);
-  const html = await pedirTexto(POST_URL);
+  let html = await pedirTexto(POST_URL);
+  // Las guias de GOV.UK vienen en varias partes: la version /print trae todas juntas.
+  if (POST_TIPO === 'guia' && urlValida.hostname === 'www.gov.uk' && !/\/print\/?$/.test(urlValida.pathname)) {
+    try {
+      const htmlCompleto = await pedirTexto(POST_URL.replace(/[?#].*$/, '').replace(/\/$/, '') + '/print');
+      if (extraerTextoVisible(htmlCompleto).length > extraerTextoVisible(html).length) {
+        html = htmlCompleto;
+        console.log('Guia de GOV.UK: se uso la version completa (/print).');
+      }
+    } catch (e) { /* sin version /print: se usa la pagina original */ }
+  }
   const tituloOriginal = extraerTitulo(html) || POST_URL;
   const textoArticulo = extraerTextoVisible(html);
   console.log(`Titulo original detectado: "${tituloOriginal}"`);
