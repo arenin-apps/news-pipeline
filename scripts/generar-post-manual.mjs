@@ -26,6 +26,7 @@ const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 const GOOGLE_OAUTH_REFRESH_TOKEN = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
 const DRIVE_FOLDER_ID = '1jeYD2UzKSLIssXi4_6gMgZT1MTjoozmg';
 const POST_URL = process.env.POST_URL;
+const POST_TIPO = (process.env.POST_TIPO || 'noticia').trim();
 
 const ADSENSE_BANNER = `<div style="text-align:center;">
 <p style="color:#94a3b8; font-size:11px; letter-spacing:1px; text-transform:uppercase; margin:0 0 6px 0;">Publicidad</p>
@@ -191,7 +192,7 @@ function extraerTextoVisible(html) {
 
 /* --- Gemini --------------------------------------------------------- */
 
-async function generarContenido({ tituloOriginal, textoArticulo, dominioOrigen, categorias }) {
+async function generarContenido({ tituloOriginal, textoArticulo, dominioOrigen, categorias, tipo }) {
   const listaCategorias = categorias.map(c => `- ${c.nombre}`).join('\n');
 
   const prompt = `Sos un periodista que escribe para ARenIN, un sitio para la comunidad argentina en el Reino Unido.
@@ -231,13 +232,52 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
   "imagenQuery": "2 a 4 palabras en ingles para buscar una foto relacionada en un banco de imagenes"
 }`;
 
+  const promptGuia = [
+    'Sos un redactor de ARenIN, un sitio para la comunidad argentina en el Reino Unido. Tu trabajo es escribir una GUIA DE TRAMITE practica, en castellano claro, para argentinos que viven en el Reino Unido, basada UNICAMENTE en el texto oficial de referencia.',
+    '',
+    'Reglas estrictas:',
+    '- Usa solo informacion que aparezca en el texto de referencia. NO inventes pasos, costos, plazos, requisitos, direcciones ni enlaces. Si el texto no trae un dato importante (por ejemplo el costo o el plazo), no lo menciones o aclara que hay que confirmarlo en la fuente oficial.',
+    '- La guia se publica con un enlace a la fuente oficial al pie. Podes nombrar a la institucion oficial (NHS, GOV.UK, HMRC, un consulado, etc.).',
+    '- Es informacion general, no asesoramiento legal personalizado. No hables de ARenIN en tercera persona.',
+    '- Estructura de "secciones", en este orden, omitiendo las que el texto no permita completar:',
+    '  1. "Para quien es": quien puede o debe hacer este tramite.',
+    '  2. "Paso a paso": lista de pasos cortos y concretos, en orden (poner "ordenada": true en esa seccion).',
+    '  3. "Documentos y datos que necesitas": lista.',
+    '  4. "Costos y plazos".',
+    '  5. "Tene en cuenta": avisos o errores frecuentes, solo si el texto los respalda.',
+    '- resumenIntro: 2 a 3 frases que expliquen que es el tramite y para que sirve.',
+    '- Extension total: 300 a 600 palabras.',
+    '- Sugeri de 2 a 4 tags cortos (1 a 3 palabras cada uno) en castellano.',
+    '',
+    'Titulo original (de referencia): ' + tituloOriginal,
+    '',
+    'Texto oficial de referencia:',
+    textoArticulo,
+    '',
+    'Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despues, sin bloque de codigo markdown, sin etiquetas HTML dentro de los textos:',
+    '{',
+    '  "titulo": "titulo claro tipo Como hacer X en el Reino Unido: guia paso a paso, sin comillas",',
+    '  "resumenIntro": "2 a 3 frases, sin HTML",',
+    '  "secciones": [',
+    '    { "subtitulo": "...", "parrafos": ["parrafo opcional"], "lista": ["punto 1", "punto 2"], "ordenada": false }',
+    '  ],',
+    '  "fuenteOficialNombre": "nombre de la institucion oficial, por ejemplo NHS o GOV.UK",',
+    '  "extractoSeo": "resumen de 130-155 caracteres para meta description",',
+    '  "focusKeyphrase": "frase clave de 2 a 4 palabras para SEO",',
+    '  "categoria": "Tramites",',
+    '  "categoriaEsNueva": false,',
+    '  "tags": ["tag uno", "tag dos"],',
+    '  "imagenQuery": "2 a 4 palabras en ingles para buscar una foto relacionada en un banco de imagenes"',
+    '}'
+  ].join('\n');
+
   const data = await pedirJson(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: [{ text: tipo === 'guia' ? promptGuia : prompt }] }],
         generationConfig: { temperature: 0.7, responseMimeType: 'application/json', maxOutputTokens: 16384 }
       })
     }
@@ -257,11 +297,11 @@ function escaparHtml(s) {
     .replace(/>/g, '&gt;');
 }
 
-function construirCuerpoHtml({ resumenIntro, secciones }) {
+function construirCuerpoHtml({ resumenIntro, secciones, pieGuia }) {
   const seccionesHtml = (secciones || []).map(sec => {
     const parrafosHtml = (sec.parrafos || []).map(p => `<p>${escaparHtml(p)}</p>`).join('\n');
     const listaHtml = (sec.lista && sec.lista.length)
-      ? `<ul>\n${sec.lista.map(li => `<li>${escaparHtml(li)}</li>`).join('\n')}\n</ul>`
+      ? `<${sec.ordenada ? 'ol' : 'ul'}>\n${sec.lista.map(li => `<li>${escaparHtml(li)}</li>`).join('\n')}\n</${sec.ordenada ? 'ol' : 'ul'}>`
       : '';
     return `<h3>${escaparHtml(sec.subtitulo)}</h3>\n${parrafosHtml}\n${listaHtml}`;
   }).join('\n');
@@ -289,7 +329,17 @@ function construirCuerpoHtml({ resumenIntro, secciones }) {
 <p>${escaparHtml(resumenIntro)}</p>
 </div>
 ${seccionesHtml}
+${pieGuia || ''}
 </div>`;
+}
+
+// Pie de las guias: fuente oficial, fecha de revision y aviso.
+function construirPieGuia({ url, nombre }) {
+  const fecha = new Date().toLocaleDateString('es-AR', { timeZone: 'Europe/London', day: '2-digit', month: '2-digit', year: 'numeric' });
+  return '<div style="border-top: 1px solid var(--border-color); margin-top: 1.8rem; padding-top: 1rem; font-size: 0.9rem;">' +
+    '<p><strong>Fuente oficial:</strong> <a href="' + escaparHtml(url) + '" target="_blank" rel="noopener">' + escaparHtml(nombre) + '</a></p>' +
+    '<p>Informacion orientativa. Los requisitos, costos y plazos pueden cambiar: confirma siempre en la fuente oficial antes de iniciar el tramite.</p>' +
+    '<p><strong>Ultima revision:</strong> ' + fecha + '</p></div>';
 }
 
 function construirBloqueImagen({ id, url, alt, fotografo }) {
@@ -583,7 +633,7 @@ async function main() {
     process.exit(1);
   }
 
-  const generado = await generarContenido({ tituloOriginal, textoArticulo, dominioOrigen, categorias });
+  const generado = await generarContenido({ tituloOriginal, textoArticulo, dominioOrigen, categorias, tipo: POST_TIPO });
 
   let featuredMediaId = null;
   let imagenCuerpo = null;
@@ -610,7 +660,9 @@ async function main() {
   if (generado.categoriaEsNueva) {
     console.log(`SUGERENCIA: nueva categoria "${generado.categoria}" (revisar y crear manualmente si corresponde)`);
   }
-  const categoria = elegirCategoria(generado.categoria, categorias);
+  const categoriaGuia = POST_TIPO === 'guia' ? categorias.find(c => c.slug === 'tramites') : null;
+  if (POST_TIPO === 'guia' && !categoriaGuia) console.error('Aviso: no existe la categoria tramites en data/categorias.json, se usa la que sugiere el modelo.');
+  const categoria = categoriaGuia || elegirCategoria(generado.categoria, categorias);
 
   let tagIds = [];
   try {
@@ -625,7 +677,7 @@ async function main() {
   const content = [
     `<!-- wp:html -->\n${ADSENSE_BANNER}\n<!-- /wp:html -->`,
     bloqueImagen,
-    `<!-- wp:html -->\n${construirCuerpoHtml(generado)}\n${adsenseInArticle()}\n<!-- /wp:html -->`
+    `<!-- wp:html -->\n${construirCuerpoHtml(POST_TIPO === 'guia' ? { ...generado, pieGuia: construirPieGuia({ url: POST_URL, nombre: generado.fuenteOficialNombre || dominioOrigen }) } : generado)}\n${adsenseInArticle()}\n<!-- /wp:html -->`
   ].filter(Boolean).join('\n\n');
 
   const post = await crearBorrador({
