@@ -20,7 +20,7 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const PEXELS_API_KEY = process.env.PEXELS_API_KEY;
 const WP_APP_USER = process.env.WP_APP_USER;
 const WP_APP_PASSWORD = process.env.WP_APP_PASSWORD;
-const ADSENSE_INARTICLE_SLOT = process.env.ADSENSE_INARTICLE_SLOT || '';
+const ADSENSE_INARTICLE_SLOT = process.env.ADSENSE_INARTICLE_SLOT || '4495230427';
 const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_OAUTH_CLIENT_ID;
 const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
 const GOOGLE_OAUTH_REFRESH_TOKEN = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
@@ -44,12 +44,21 @@ function adsenseInArticle() {
   }
   return `<div style="text-align:center; margin: 24px 0;">
 <p style="color:#94a3b8; font-size:11px; letter-spacing:1px; text-transform:uppercase; margin:0 0 6px 0;">Publicidad</p>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8667684098323123" crossorigin="anonymous"></script>
-<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-8667684098323123" data-ad-slot="${ADSENSE_INARTICLE_SLOT}" data-ad-format="fluid" data-ad-layout="in-article"></ins>
+<ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-client="ca-pub-8667684098323123" data-ad-slot="${ADSENSE_INARTICLE_SLOT}" data-ad-format="fluid" data-ad-layout="in-article"></ins>
 <script>
 (adsbygoogle = window.adsbygoogle || []).push({});
 </script>
 </div>`;
+}
+
+// Banner chico en el medio del post: antes del subtitulo central (solo si hay 3 o mas subtitulos; con 2, antes del segundo).
+function insertarBannerMedio(html) {
+  const n = (html.match(/<h3>/g) || []).length;
+  if (n < 2) return html;
+  const objetivo = n === 2 ? 2 : Math.ceil(n / 2);
+  const banner = ADSENSE_BANNER.replace(/<script async[^>]*><\/script>\n?/, '').replace('<div style="text-align:center;">', '<div style="text-align:center; margin: 24px 0;">');
+  let i = 0;
+  return html.replace(/<h3>/g, m => (++i === objetivo ? banner + '\n' + m : m));
 }
 
 /* ------------------------------------------------------------------ */
@@ -706,7 +715,7 @@ async function main() {
   const content = [
     `<!-- wp:html -->\n${ADSENSE_BANNER}\n<!-- /wp:html -->`,
     bloqueImagen,
-    `<!-- wp:html -->\n${construirCuerpoHtml(POST_TIPO === 'guia' ? { ...generado, pieGuia: construirPieGuia({ url: POST_URL, nombre: generado.fuenteOficialNombre || dominioOrigen }) } : generado)}\n${adsenseInArticle()}\n<!-- /wp:html -->`
+    `<!-- wp:html -->\n${insertarBannerMedio(construirCuerpoHtml(POST_TIPO === 'guia' ? { ...generado, pieGuia: construirPieGuia({ url: POST_URL, nombre: generado.fuenteOficialNombre || dominioOrigen }) } : generado))}\n${adsenseInArticle()}\n<!-- /wp:html -->`
   ].filter(Boolean).join('\n\n');
 
   const post = await crearBorrador({
