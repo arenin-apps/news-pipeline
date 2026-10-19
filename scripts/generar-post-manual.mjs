@@ -88,6 +88,7 @@ async function pedirJson(url, opciones = {}, intentos = 4) {
       return await res.json();
     } catch (err) {
       ultimoError = err;
+      if (err.status === 429 && /PerDay/.test(JSON.stringify(err.body || ''))) break;
       if (n < intentos) await new Promise(r => setTimeout(r, ([429, 500, 503].includes(err.status) ? 20000 : 3000) * n));
     }
   }
@@ -272,17 +273,31 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
     '}'
   ].join('\n');
 
-  const data = await pedirJson(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: tipo === 'guia' ? promptGuia : prompt }] }],
-        generationConfig: { temperature: 0.7, responseMimeType: 'application/json', maxOutputTokens: 16384 }
-      })
+  // Cada modelo tiene su propia cuota gratuita diaria: si el principal se agota, se usa el siguiente.
+  const MODELOS = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+  let data;
+  let errorModelo;
+  for (const modelo of MODELOS) {
+    try {
+      data = await pedirJson(
+        `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: tipo === 'guia' ? promptGuia : prompt }] }],
+            generationConfig: { temperature: 0.7, responseMimeType: 'application/json', maxOutputTokens: 16384 }
+          })
+        }
+      );
+      console.log('Modelo usado: ' + modelo);
+      break;
+    } catch (err) {
+      errorModelo = err;
+      console.error('El modelo ' + modelo + ' fallo (' + (err.status || err.message) + '), se prueba el siguiente.');
     }
-  );
+  }
+  if (!data) throw errorModelo;
 
   const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!texto) throw new Error('Gemini no devolvio contenido');
