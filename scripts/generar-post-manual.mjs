@@ -38,7 +38,10 @@ const ADSENSE_BANNER = `<div style="text-align:center;">
 </div>`;
 
 function adsenseInArticle() {
-  if (!ADSENSE_INARTICLE_SLOT) return '';
+  if (!ADSENSE_INARTICLE_SLOT) {
+    // Sin unidad in-article configurada: se repite el banner de arriba al final del post (sin volver a cargar el script).
+    return ADSENSE_BANNER.replace(/<script async[^>]*><\/script>\n?/, '');
+  }
   return `<div style="text-align:center; margin: 24px 0;">
 <p style="color:#94a3b8; font-size:11px; letter-spacing:1px; text-transform:uppercase; margin:0 0 6px 0;">Publicidad</p>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8667684098323123" crossorigin="anonymous"></script>
