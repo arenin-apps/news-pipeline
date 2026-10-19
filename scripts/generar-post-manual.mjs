@@ -274,7 +274,7 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
   ].join('\n');
 
   // Cada modelo tiene su propia cuota gratuita diaria: si el principal se agota, se usa el siguiente.
-  const MODELOS = ['gemini-3.6-flash', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
+  const MODELOS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite'];
   let data;
   let errorModelo;
   for (const modelo of MODELOS) {
