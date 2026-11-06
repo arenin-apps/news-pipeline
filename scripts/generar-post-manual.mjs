@@ -215,12 +215,14 @@ Sergio (el editor del sitio) encontro una noticia interesante para la comunidad 
 Reglas estrictas:
 - Nunca menciones el nombre del sitio o medio de donde sale esta noticia (dominio: ${dominioOrigen}).
 - Si la noticia original cita una fuente primaria (gov.uk, Met Office, TfL, NHS, la Policia, un ministerio, etc.), podes citarla vos tambien.
-- El contenido se arma en dos partes: un resumen directo (resumenIntro) y las secciones con subtitulo. Para una noticia comun usa de 2 a 4 secciones.
+- El contenido se arma en dos partes: un resumen directo (resumenIntro) y las secciones con subtitulo. Para una noticia comun usa de 4 a 8 secciones.
 - IMPORTANTE: si el texto es una LISTA o ranking de varios elementos (galerias, museos, restaurantes, planes, etc.), NO te quedes con uno solo ni con los primeros: cubri TODOS los elementos de la lista (hasta 25), una seccion por elemento. El subtitulo es el nombre del lugar o elemento; el parrafo explica en 2 o 3 frases que es, que lo hace especial y en que zona o barrio esta, y si el texto lo dice, agrega datos practicos (entrada gratuita, horarios, exposicion actual) en la lista. El resumenIntro debe decir cuantos lugares se cubren y que tienen en comun. Si el texto trae una linea ELEMENTOS DE LA LISTA, usala como indice para no omitir ninguno.
 - resumenIntro: 2 a 3 frases que respondan de entrada lo mas importante de la noticia, sin rodeos.
 - Cada seccion tiene un subtitulo corto, 1 o 2 parrafos, y opcionalmente una lista de puntos si el contenido se presta (fechas, pasos, datos sueltos). Si no hace falta lista, dejala como array vacio.
 - No repitas en las secciones lo mismo que ya dice el resumenIntro.
-- Extension total: 250 a 450 palabras.
+- Extension total: entre 700 y 1200 palabras. Tiene que ser un articulo completo y detallado, NO un resumen: si el texto de referencia es corto cubri todo lo que dice sin inventar nada, y si es largo no lo acortes.
+- COMPLETITUD: el articulo debe incluir TODA la informacion relevante del texto de referencia: nombres propios, lugares, fechas, horarios, precios, cifras, porcentajes, requisitos, pasos, direcciones, citas de personas (reescritas con atribucion), contexto y antecedentes. No omitas datos concretos para ahorrar espacio ni los reemplaces por generalidades. Cada seccion lleva 2 a 4 parrafos sustanciosos y, cuando haya datos sueltos (fechas, precios, horarios), una lista.
+- No inventes ningun dato que no este en el texto de referencia.
 - Elegi la categoria mas apropiada de esta lista (o sugeri una nueva si ninguna encaja bien):
 ${listaCategorias}
 - Sugeri de 2 a 4 tags cortos (1 a 3 palabras cada uno) en castellano, relevantes para el tema (ej. lugares, instituciones, temas puntuales).
