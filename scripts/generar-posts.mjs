@@ -374,7 +374,7 @@ async function resolverTags(nombres) {
   return ids;
 }
 
-async function crearBorrador({ titulo, content, resumenIntro, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId, imagenUrl }) {
+async function crearBorrador({ titulo, content, resumenIntro, extractoSeo, focusKeyphrase, categoriaId, tagIds, featuredMediaId, imagenUrl, fuenteUrl }) {
   const auth = Buffer.from(`${WP_APP_USER}:${WP_APP_PASSWORD}`).toString('base64');
 
   const imagenIdStr = featuredMediaId ? String(featuredMediaId) : undefined;
@@ -394,6 +394,7 @@ async function crearBorrador({ titulo, content, resumenIntro, extractoSeo, focus
         _yoast_wpseo_title: `${titulo} | ARenIN`,
         _yoast_wpseo_metadesc: extractoSeo,
         _yoast_wpseo_focuskw: focusKeyphrase,
+        _arenin_fuente_url: fuenteUrl || '',
         '_yoast_wpseo_opengraph-title': titulo,
         '_yoast_wpseo_opengraph-description': extractoSeo,
         '_yoast_wpseo_opengraph-image': imagenUrl || undefined,
@@ -619,7 +620,8 @@ async function procesarFuente(fuente, categorias, log) {
     categoriaId: categoria.id,
     tagIds,
     featuredMediaId,
-    imagenUrl: imagenCuerpo ? imagenCuerpo.url : null
+    imagenUrl: imagenCuerpo ? imagenCuerpo.url : null,
+    fuenteUrl: item.link
   });
 
   console.log(`  [${fuente.id}] borrador creado: post #${post.id} (categoria: ${categoria.nombre})`);
