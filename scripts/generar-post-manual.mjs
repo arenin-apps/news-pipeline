@@ -220,6 +220,7 @@ Reglas estrictas:
 - resumenIntro: 2 a 3 frases que respondan de entrada lo mas importante de la noticia, sin rodeos.
 - Cada seccion tiene un subtitulo corto, 1 o 2 parrafos, y opcionalmente una lista de puntos si el contenido se presta (fechas, pasos, datos sueltos). Si no hace falta lista, dejala como array vacio.
 - No repitas en las secciones lo mismo que ya dice el resumenIntro.
+- Escribe con ortografia correcta: tildes, ñ y signos de apertura (¿ ¡) donde corresponda, tambien en el titulo, los subtitulos y las listas. Nunca omitas los acentos. Usa el formato numerico del espanol: punto para los miles y coma para los decimales (7.117.000; 161,4).
 - Extension total: entre 700 y 1200 palabras. Tiene que ser un articulo completo y detallado, NO un resumen: si el texto de referencia es corto cubri todo lo que dice sin inventar nada, y si es largo no lo acortes.
 - COMPLETITUD: el articulo debe incluir TODA la informacion relevante del texto de referencia: nombres propios, lugares, fechas, horarios, precios, cifras, porcentajes, requisitos, pasos, direcciones, citas de personas (reescritas con atribucion), contexto y antecedentes. No omitas datos concretos para ahorrar espacio ni los reemplaces por generalidades. Cada seccion lleva 2 a 4 parrafos sustanciosos y, cuando haya datos sueltos (fechas, precios, horarios), una lista.
 - No inventes ningun dato que no este en el texto de referencia.
