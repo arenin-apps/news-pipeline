@@ -241,6 +241,25 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
   return JSON.parse(texto);
 }
 
+/* --- Cola de notas para VENenIN -------------------------------------- */
+// Cada nota creada para ARenIN deja su URL fuente en data/cola-venenin.json (repo publico).
+// El repo news-venenin la lee y crea la version VENenIN como borrador.
+const COLA_VEN = join(RAIZ, 'data', 'cola-venenin.json');
+
+async function encolarParaVenenin({ url, tipo, arenin }) {
+  try {
+    let cola = [];
+    try { cola = JSON.parse(await readFile(COLA_VEN, 'utf8')); } catch { cola = []; }
+    if (!cola.some(e => e.url === url)) {
+      cola.push({ url, tipo: tipo || 'noticia', arenin, fecha: new Date().toISOString() });
+      await writeFile(COLA_VEN, JSON.stringify(cola.slice(-60), null, 2) + String.fromCharCode(10), 'utf8');
+    }
+    console.log('  Encolada para VENenIN: ' + url);
+  } catch (err) {
+    console.error('No se pudo encolar para VENenIN: ' + err.message);
+  }
+}
+
 /* --- Formato visual del cuerpo ("quick post") ------------------------ */
 
 function escaparHtml(s) {
@@ -625,6 +644,7 @@ async function procesarFuente(fuente, categorias, log) {
   });
 
   console.log(`  [${fuente.id}] borrador creado: post #${post.id} (categoria: ${categoria.nombre})`);
+  await encolarParaVenenin({ url: item.link, tipo: 'noticia', arenin: post.id });
   log[fuente.id] = item.fecha.toISOString();
   return post.id;
 }
