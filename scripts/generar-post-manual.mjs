@@ -5,7 +5,7 @@
  * Uso: POST_URL=https://... node scripts/generar-post-manual.mjs
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import sharp from 'sharp';
@@ -316,6 +316,25 @@ Responde UNICAMENTE con un JSON con esta forma exacta, sin texto antes ni despue
   const texto = data.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!texto) throw new Error('Gemini no devolvio contenido');
   return JSON.parse(texto);
+}
+
+/* --- Cola de notas para VENenIN -------------------------------------- */
+// Cada nota creada para ARenIN deja su URL fuente en data/cola-venenin.json (repo publico).
+// El repo news-venenin la lee y crea la version VENenIN como borrador.
+const COLA_VEN = join(RAIZ, 'data', 'cola-venenin.json');
+
+async function encolarParaVenenin({ url, tipo, arenin }) {
+  try {
+    let cola = [];
+    try { cola = JSON.parse(await readFile(COLA_VEN, 'utf8')); } catch { cola = []; }
+    if (!cola.some(e => e.url === url)) {
+      cola.push({ url, tipo: tipo || 'noticia', arenin, fecha: new Date().toISOString() });
+      await writeFile(COLA_VEN, JSON.stringify(cola.slice(-60), null, 2) + String.fromCharCode(10), 'utf8');
+    }
+    console.log('  Encolada para VENenIN: ' + url);
+  } catch (err) {
+    console.error('No se pudo encolar para VENenIN: ' + err.message);
+  }
 }
 
 /* --- Formato visual del cuerpo ("quick post") ------------------------ */
@@ -734,6 +753,7 @@ async function main() {
     fuenteUrl: POST_URL
   });
 
+  await encolarParaVenenin({ url: POST_URL, tipo: POST_TIPO, arenin: post.id });
   console.log(`Listo. Borrador creado: post #${post.id} "${generado.titulo}" (categoria: ${categoria.nombre}). Revisalo en WordPress antes de publicar.`);
 }
 
