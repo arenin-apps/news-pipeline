@@ -70,5 +70,17 @@
     "tipo": "noticia",
     "arenin": 10592,
     "fecha": "2026-11-07T12:13:33.171Z"
+  },
+  {
+    "url": "https://www.timeout.com/london/theatre/london-musicals",
+    "tipo": "noticia",
+    "arenin": 10594,
+    "fecha": "2026-11-08T12:30:18.605Z"
+  },
+  {
+    "url": "https://londonist.com/london/things-to-do/shire-horse-sunday-hampton-court-palace",
+    "tipo": "noticia",
+    "arenin": 10596,
+    "fecha": "2026-11-08T12:30:40.951Z"
   }
 ]
