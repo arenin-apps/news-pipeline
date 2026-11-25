@@ -1,17 +1,5 @@
 [
   {
-    "url": "https://www.timeout.com/london/news/remembrance-sunday-road-closures-2026-110626",
-    "tipo": "noticia",
-    "arenin": 10560,
-    "fecha": "2026-11-06T13:13:20.948Z"
-  },
-  {
-    "url": "https://secretldn.com/tube-strikes-london-winter/",
-    "tipo": "noticia",
-    "arenin": 10564,
-    "fecha": "2026-11-06T13:30:10.642Z"
-  },
-  {
     "url": "https://www.timeout.com/uk/news/coolest-neighbourhoods-2026-bristol-old-market-110626",
     "tipo": "noticia",
     "arenin": 10566,
@@ -340,5 +328,35 @@
     "tipo": "noticia",
     "arenin": 10744,
     "fecha": "2026-11-23T17:00:40.347Z"
+  },
+  {
+    "url": "https://secretldn.com/tube-strikes-november-26-break-down-of-talks/",
+    "tipo": "noticia",
+    "arenin": 10757,
+    "fecha": "2026-11-25T16:32:25.991Z"
+  },
+  {
+    "url": "https://www.timeout.com/uk/news/fodor-no-list-do-not-travel-edinburgh-2027-112526",
+    "tipo": "noticia",
+    "arenin": 10759,
+    "fecha": "2026-11-25T16:34:47.545Z"
+  },
+  {
+    "url": "https://www.timeout.com/london/news/london-museum-opening-review-112526",
+    "tipo": "noticia",
+    "arenin": 10761,
+    "fecha": "2026-11-25T16:37:33.854Z"
+  },
+  {
+    "url": "https://londonist.com/london/things-to-do/things-to-do-in-london-in-december",
+    "tipo": "noticia",
+    "arenin": 10763,
+    "fecha": "2026-11-25T16:39:58.982Z"
+  },
+  {
+    "url": "https://www.mylondon.news/news/transport/london-underground-worker-finger-amputated-34966029",
+    "tipo": "noticia",
+    "arenin": 10765,
+    "fecha": "2026-11-25T16:40:20.471Z"
   }
 ]
